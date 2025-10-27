@@ -1,0 +1,58 @@
+@startuml
+abstract class fr.centrale.nantes.worldofecn.world.Creature
+abstract class fr.centrale.nantes.worldofecn.world.ElementDeJeu
+annotation java.lang.Override
+class fr.centrale.nantes.worldofecn.DatabaseTools
+class fr.centrale.nantes.worldofecn.WorldOfECN
+class fr.centrale.nantes.worldofecn.world.Joueur
+class fr.centrale.nantes.worldofecn.world.Monstre
+class fr.centrale.nantes.worldofecn.world.Objet
+class fr.centrale.nantes.worldofecn.world.Personnage
+class fr.centrale.nantes.worldofecn.world.Point2D
+class fr.centrale.nantes.worldofecn.world.World
+class java.sql.Connection
+class java.sql.Driver
+class java.sql.DriverManager
+class java.sql.SQLException
+class java.util.ArrayList
+class java.util.Iterator
+class java.util.LinkedList
+class java.util.List
+class java.util.Random
+class java.util.ResourceBundle
+class java.util.logging.Level
+class java.util.logging.Logger
+fr.centrale.nantes.worldofecn.world.Creature --|> fr.centrale.nantes.worldofecn.world.ElementDeJeu
+fr.centrale.nantes.worldofecn.world.Creature ..> java.sql.Connection
+fr.centrale.nantes.worldofecn.world.ElementDeJeu ..> java.sql.Connection
+fr.centrale.nantes.worldofecn.world.ElementDeJeu ..> java.util.Random
+fr.centrale.nantes.worldofecn.DatabaseTools ..> fr.centrale.nantes.worldofecn.world.World
+fr.centrale.nantes.worldofecn.DatabaseTools ..> java.sql.Connection
+fr.centrale.nantes.worldofecn.DatabaseTools ..> java.sql.Driver
+fr.centrale.nantes.worldofecn.DatabaseTools ..> java.sql.DriverManager
+fr.centrale.nantes.worldofecn.DatabaseTools ..> java.sql.SQLException
+fr.centrale.nantes.worldofecn.DatabaseTools ..> java.util.ResourceBundle
+fr.centrale.nantes.worldofecn.DatabaseTools ..> java.util.logging.Level
+fr.centrale.nantes.worldofecn.DatabaseTools ..> java.util.logging.Logger
+fr.centrale.nantes.worldofecn.world.Monstre --|> fr.centrale.nantes.worldofecn.world.Creature
+fr.centrale.nantes.worldofecn.world.Monstre ..> java.lang.Override
+fr.centrale.nantes.worldofecn.world.Monstre ..> java.sql.Connection
+fr.centrale.nantes.worldofecn.world.Monstre ..> java.util.ArrayList
+fr.centrale.nantes.worldofecn.world.Monstre ..> java.util.List
+fr.centrale.nantes.worldofecn.world.Objet --|> fr.centrale.nantes.worldofecn.world.ElementDeJeu
+fr.centrale.nantes.worldofecn.world.Objet ..> java.lang.Override
+fr.centrale.nantes.worldofecn.world.Objet ..> java.sql.Connection
+fr.centrale.nantes.worldofecn.world.Objet ..> java.util.ArrayList
+fr.centrale.nantes.worldofecn.world.Objet ..> java.util.List
+fr.centrale.nantes.worldofecn.world.Personnage --|> fr.centrale.nantes.worldofecn.world.Creature
+fr.centrale.nantes.worldofecn.world.Personnage ..> java.lang.Override
+fr.centrale.nantes.worldofecn.world.Personnage ..> java.sql.Connection
+fr.centrale.nantes.worldofecn.world.Personnage ..> java.util.ArrayList
+fr.centrale.nantes.worldofecn.world.Personnage ..> java.util.List
+fr.centrale.nantes.worldofecn.world.World ..> java.sql.Connection
+fr.centrale.nantes.worldofecn.world.World ..> java.util.ArrayList
+fr.centrale.nantes.worldofecn.world.World ..> java.util.Iterator
+fr.centrale.nantes.worldofecn.world.World ..> java.util.LinkedList
+fr.centrale.nantes.worldofecn.world.World ..> java.util.List
+fr.centrale.nantes.worldofecn.world.World ..> java.util.Random
+@enduml

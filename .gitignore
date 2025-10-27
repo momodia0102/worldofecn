@@ -1,0 +1,23 @@
+# === Fichiers de Secrets ===
+# NE JAMAIS PARTAGER LES MOTS DE PASSE !
+# Ceci est le fichier le plus important à ignorer pour toi
+src/main/resources/fr/centrale/nantes/worldofecn/database.properties
+
+# === Fichiers de Build (Maven) ===
+# Ignore tout le dossier 'target' qui contient les .class et .jar
+/target/
+
+# === Fichiers de l'IDE (NetBeans) ===
+# Ignore les fichiers de configuration spécifiques à l'utilisateur
+/nbproject/private/
+/build/
+/nbbuild/
+/dist/
+/nbdist/
+/nbactions.xml
+/nb-configuration.xml
+
+# === Fichiers système et logs ===
+*.log
+.DS_Store
+Thumbs.db

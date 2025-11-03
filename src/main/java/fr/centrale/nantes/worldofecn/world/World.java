@@ -150,6 +150,8 @@ public class World {
             String raceStr = Monstre.intToRace(race);
 
             Monstre item = new Monstre(this);
+            item.setRace(raceStr);               
+            item.setRaceCaracteristiques();
             this.listElements.add(item);
             this.positions.add(item.getPosition());
         }

@@ -11,6 +11,12 @@ package fr.centrale.nantes.worldofecn.world;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.sql.ResultSet;
 
 /**
  *
@@ -148,13 +154,29 @@ public class Monstre extends Creature {
     }
 
 
+
     @Override
-    public Integer saveToDatabase(Connection connection) {
-        Integer id = -1;
+    public void saveToDatabase(Connection connection, Integer idElementDeJeu) throws SQLException {
+        // !! pos_x ET pos_y SONT RETIRÉS de la requête
+        String query = "INSERT INTO monstre (id_monstre, race, p_vie, p_vie_max, pourcent_attaque, " +
+                       "degats_attaque, pourcent_esquive, absorbe) " +
+                       "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"; // 8 params
 
-        return id;
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+
+            stmt.setInt(1, idElementDeJeu); // L'ID du parent
+            stmt.setString(2, this.getRace());
+            stmt.setFloat(3, this.getPVie());
+            stmt.setFloat(4, this.getPVieMax());
+            stmt.setFloat(5, this.getPourcentAttaque());
+            stmt.setFloat(6, this.getDegatsAttaque());
+            stmt.setFloat(7, this.getPourcentEsquive());
+            stmt.setFloat(8, this.getAbsorbe());
+            // Les params 9 (pos_x) et 10 (pos_y) sont supprimés
+
+            stmt.executeUpdate();
+        }
     }
-
     @Override
     public void getFromDatabase(Connection connection, Integer id) {
     }

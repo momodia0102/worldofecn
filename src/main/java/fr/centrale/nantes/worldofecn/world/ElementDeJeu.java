@@ -59,10 +59,10 @@ public abstract class ElementDeJeu {
     
     /**
      * Save element to database
-     * @param connection
-     * @return ID in the database
+     * @param connection, idElementDeJeu
      */
-    public abstract Integer saveToDatabase(Connection connection);
+    // NOUVELLE LIGNE
+    public abstract void saveToDatabase(Connection connection, Integer idElementDeJeu) throws java.sql.SQLException;
     
     /**
      * Get element from database

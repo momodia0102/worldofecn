@@ -10,6 +10,12 @@ package fr.centrale.nantes.worldofecn.world;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.sql.ResultSet;
 
 /**
  *
@@ -108,13 +114,21 @@ public class Objet extends ElementDeJeu {
         }
     }
 
+   
     @Override
-    public Integer saveToDatabase(Connection connection) {
-        Integer id = -1;
+    public void saveToDatabase(Connection connection, Integer idElementDeJeu) throws SQLException {
+        // !! pos_x ET pos_y SONT RETIRÉS de la requête
+        String query = "INSERT INTO objet (id_objet, type) VALUES (?, ?)"; // 2 params
 
-        return id;
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+
+            stmt.setInt(1, idElementDeJeu); // L'ID du parent
+            stmt.setString(2, this.getType());
+            // Les params 3 (pos_x) et 4 (pos_y) sont supprimés
+
+            stmt.executeUpdate();
+        }
     }
-
     @Override
     public void getFromDatabase(Connection connection, Integer id) {
     }

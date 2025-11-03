@@ -20,7 +20,10 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 
 import fr.centrale.nantes.worldofecn.world.World;
-import fr.centrale.nantes.worldofecn.worl.ElementDeJeu;
+import fr.centrale.nantes.worldofecn.world.ElementDeJeu;
+import fr.centrale.nantes.worldofecn.world.Personnage;
+import fr.centrale.nantes.worldofecn.world.Monstre;
+import fr.centrale.nantes.worldofecn.world.Objet;
 
 /**
  * Manage database connectio, saves and retreive informations
@@ -136,23 +139,36 @@ public class DatabaseTools {
      * @param nomSauvegarde : le nom de la sauvegarde
      * @param monde: le monde à enregistrer
      */
+    // DANS DatabaseTools.java
     public void saveWorld(Integer idJoueur, String nomPartie, String nomSauvegarde, World monde) {
-        if (idJoueur == null || nomPartie == null || nomSauvegarde == null || monde == null) {
-        throw new IllegalArgumentException("Paramètres invalides");
+        if (idJoueur == null || nomPartie == null || monde == null) {
+            throw new IllegalArgumentException("Paramètres invalides (idJoueur, nomPartie, monde ne peuvent être null)");
         }
+
+        // Ajout de la logique de Sauvegarde Rapide
+        String finalSaveName = nomSauvegarde;
+        if (finalSaveName == null) {
+            finalSaveName = "Sauvegarde Rapide"; 
+            // NOTE: Tu devras peut-être ajouter une logique pour supprimer 
+            // l'ancienne sauvegarde rapide de cette 'partie' avant.
+        }
+
         try {
-            
             connection.setAutoCommit(false);
 
-            
             Integer idPartie = getPartie(idJoueur, nomPartie);
 
-            
-            Integer idSauvegarde = createSauvegarde(idPartie, nomSauvegarde);
+            if (idPartie == null) {
+                throw new SQLException("La partie '" + nomPartie + "' n'existe pas pour ce joueur.");
+                
+            }
 
-            saveElementsForSauvegarde(idSauvegarde, monde);
-            
+            Integer idSauvegarde = createSauvegarde(idPartie, finalSaveName);
+
            
+            saveElementsForSauvegarde(idSauvegarde, idPartie, monde);
+
+
             connection.commit();
         } catch (SQLException ex) {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Erreur lors de saveWorld", ex);
@@ -168,7 +184,7 @@ public class DatabaseTools {
                 Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "Impossible de remettre autoCommit=true", e);
             }
         }
-    }   
+    }
     public Integer getPartie(Integer Idjoueur, String nomPartie)throws SQLException {
         Integer id = null;
         String select = "Select id_partie FROM partie WHERE id_joueur =? AND nom = ? ";
@@ -201,52 +217,83 @@ public class DatabaseTools {
             }
         }
     }
-    private void saveElementsForSauvegarde(Integer idSauvegarde, World monde) throws SQLException {
-        String insertLiaison = "INSERT INTO sauvegarde_element (id_sauvegarde, id_element) VALUES (?, ?)";
-        try (PreparedStatement pst = connection.prepareStatement(insertLiaison)) {
+
+
+    private void saveElementsForSauvegarde(Integer idSauvegarde, Integer idPartie, World monde) throws SQLException {
+
+        // Préparer les 3 requêtes de liaison
+        String linkPersonnageQuery = "INSERT INTO sauvegarde_personnage (id_sauvegarde, id_personnage) VALUES (?, ?)";
+        String linkMonstreQuery = "INSERT INTO sauvegarde_monstre (id_sauvegarde, id_monstre) VALUES (?, ?)";
+        String linkObjetQuery = "INSERT INTO sauvegarde_objet (id_sauvegarde, id_objet) VALUES (?, ?)";
+
+        // Préparer la requête pour créer l'élément "Parent" (AVEC LES BONNES COLONNES)
+        String createParentQuery = "INSERT INTO element_de_jeu (id_world, type_element, position_x, position_y) " +
+                                   "VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement pstParent = connection.prepareStatement(createParentQuery, Statement.RETURN_GENERATED_KEYS);
+             PreparedStatement pstLinkPersonnage = connection.prepareStatement(linkPersonnageQuery);
+             PreparedStatement pstLinkMonstre = connection.prepareStatement(linkMonstreQuery);
+             PreparedStatement pstLinkObjet = connection.prepareStatement(linkObjetQuery)) {
+
             // Parcourir tous les éléments du monde
             for (ElementDeJeu element : monde.getListElements()) {
-                // D'abord sauvegarder l'élément et récupérer son ID
-                Integer idElement = element.saveToDatabase(connection);
 
-                if (idElement != null) {
-                    // Puis créer la liaison sauvegarde <-> élément
-                    pst.setInt(1, idSauvegarde);
-                    pst.setInt(2, idElement);
-                    pst.executeUpdate();
+                // --- 1. CRÉER LE PARENT (element_de_jeu) ---
+
+                // Déterminer le type de l'élément pour la colonne 'type_element'
+                String elementType = null;
+                if (element instanceof Personnage) {
+                    elementType = "PERSONNAGE";
+                } else if (element instanceof Monstre) {
+                    elementType = "MONSTRE";
+                } else if (element instanceof Objet) {
+                    elementType = "OBJET";
+                }
+
+                // Remplir la requête pour créer le parent
+                pstParent.setInt(1, idPartie); // <= C'est le 'id_world' !
+                pstParent.setString(2, elementType);
+                pstParent.setInt(3, element.getPosition().getX());
+                pstParent.setInt(4, element.getPosition().getY());
+
+                pstParent.executeUpdate();
+
+                // Récupérer l'ID auto-généré du parent
+                Integer newElementId;
+                try (ResultSet generatedKeys = pstParent.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        // La PK est 'id_element' (vu sur ton screenshot)
+                        newElementId = generatedKeys.getInt("id_element"); 
+                    } else {
+                        throw new SQLException("Echec de création de element_de_jeu, pas d'ID obtenu.");
+                    }
+                }
+
+                // --- 2. CRÉER L'ENFANT (personnage, monstre, ou objet) ---
+                element.saveToDatabase(connection, newElementId);
+
+                // --- 3. CRÉER LE LIEN avec la sauvegarde ---
+                if (element instanceof Personnage) {
+                    pstLinkPersonnage.setInt(1, idSauvegarde);
+                    pstLinkPersonnage.setInt(2, newElementId);
+                    pstLinkPersonnage.addBatch();
+                } else if (element instanceof Monstre) {
+                    pstLinkMonstre.setInt(1, idSauvegarde);
+                    pstLinkMonstre.setInt(2, newElementId);
+                    pstLinkMonstre.addBatch();
+                } else if (element instanceof Objet) {
+                    pstLinkObjet.setInt(1, idSauvegarde);
+                    pstLinkObjet.setInt(2, newElementId);
+                    pstLinkObjet.addBatch();
                 }
             }
+
+            // 4. Exécuter toutes les insertions de liens
+            pstLinkPersonnage.executeBatch();
+            pstLinkMonstre.executeBatch();
+            pstLinkObjet.executeBatch();
         }
     }
-
-    private void saveObjetsForSauvegarde(Integer idSauvegarde) throws SQLException {
-        String insertLiaison = "INSERT INTO sauvegarde_objet (id_sauvegarde, id_objet) "
-                + "VALUES (?)";
-        try (PreparedStatement pst = connection.prepareStatement(insertLiaison)) {
-            pst.setInt(1, idSauvegarde);
-            pst.executeUpdate(); 
-        }
-    }
-
-    private void saveMonstresForSauvegarde(Integer idSauvegarde) throws SQLException {
-        String insertLiaison = "INSERT INTO sauvegarde_monstre (id_sauvegarde, id_monstre) "
-                + "VALUES (?)";
-        try (PreparedStatement pst = connection.prepareStatement(insertLiaison)) {
-                pst.setInt(1, idSauvegarde);
-                pst.executeUpdate(); 
-        }
-    }
-
-    private void savePersonnagesForSauvegarde(Integer idSauvegarde) throws SQLException {
-        
-        String insertLiaison = "INSERT INTO sauvegarde_personnage (id_sauvegarde) VALUES (?)";
-        try (PreparedStatement pst = connection.prepareStatement(insertLiaison)) {
-            pst.setInt(1, idSauvegarde);
-            pst.executeUpdate(); 
-        }
-    }
-
-
     /**
      * get world sauvegarde from database
      * @param idJoueur

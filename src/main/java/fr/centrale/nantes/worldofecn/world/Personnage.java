@@ -10,6 +10,12 @@ package fr.centrale.nantes.worldofecn.world;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.sql.ResultSet;
 
 /**
  *
@@ -443,12 +449,37 @@ private String race;
     }
 
     @Override
-    public Integer saveToDatabase(Connection connection) {
-        Integer id = -1;
+    public void saveToDatabase(Connection connection, Integer idElementDeJeu) throws SQLException {
+        // !! pos_x ET pos_y SONT RETIRÉS de la requête
+        String query = "INSERT INTO personnage (id_personnage, nom, race, metier, p_vie, p_vie_max, " +
+                       "p_magie, p_magie_max, portee, pourcent_attaque, degats_attaque, " +
+                       "pourcent_parade, valeur_parade, pourcent_esquive, absorbe, " +
+                       "nb_fleches) " +
+                       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"; // 16 params
 
-        return id;
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+
+            stmt.setInt(1, idElementDeJeu); // L'ID du parent
+            stmt.setString(2, this.getRace()); // Nom par défaut
+            stmt.setString(3, this.getRace());
+            stmt.setString(4, this.getMetier());
+            stmt.setFloat(5, this.getPVie());
+            stmt.setFloat(6, this.getPVieMax());
+            stmt.setFloat(7, this.getPMagie());
+            stmt.setFloat(8, this.getPMagieMax());
+            stmt.setFloat(9, this.getPortee());
+            stmt.setFloat(10, this.getPourcentAttaque());
+            stmt.setFloat(11, this.getDegatsAttaque());
+            stmt.setFloat(12, this.getPourcentParade());
+            stmt.setFloat(13, this.getValeurParade());
+            stmt.setFloat(14, this.getPourcentEsquive());
+            stmt.setFloat(15, this.getAbsorbe());
+            stmt.setInt(16, this.getNbFleches());
+            // Les params 17 (pos_x) et 18 (pos_y) sont supprimés
+
+            stmt.executeUpdate();
+        }
     }
-
     @Override
     public void getFromDatabase(Connection connection, Integer id) {
     }

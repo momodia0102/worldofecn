@@ -22,6 +22,7 @@ public abstract class ElementDeJeu {
 
     private Point2D position;
     private World world;
+    private Integer IdElement;
     
     /**
      * generate element in the world
@@ -47,6 +48,22 @@ public abstract class ElementDeJeu {
      */
     public Point2D getPosition() {
         return position;
+    }
+    
+    /**
+     * Get element ID
+     * @return 
+     */
+    public Integer getIdElement() {
+        return IdElement;
+    }
+
+    /**
+     * Set element ID
+     * @param IdElement 
+     */
+    public void setIdElement(Integer IdElement) {
+        this.IdElement = IdElement;
     }
 
     /**

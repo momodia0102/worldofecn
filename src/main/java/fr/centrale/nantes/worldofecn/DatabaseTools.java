@@ -1,7 +1,6 @@
 /* --------------------------------------------------------------------------------
  * WoE Tools
- * 
- * Ecole Centrale Nantes - Septembre 2022
+ * * Ecole Centrale Nantes - Septembre 2022
  * Equipe pédagogique Informatique et Mathématiques
  * JY Martin
  * -------------------------------------------------------------------------------- */
@@ -185,9 +184,14 @@ public class DatabaseTools {
             }
         }
     }
+    
     public Integer getPartie(Integer Idjoueur, String nomPartie)throws SQLException {
         Integer id = null;
-        String select = "Select id_partie FROM partie WHERE id_joueur =? AND nom = ? ";
+        
+        // --- CORRECTION 1 ---
+        // La colonne dans 'partie' qui référence 'joueur' est 'id_joueur_partie'
+        String select = "Select id_partie FROM partie WHERE id_joueur = ? AND nom = ? ";
+        
         try(PreparedStatement stmt = connection.prepareStatement(select)){
             stmt.setInt(1, Idjoueur);
             stmt.setString(2, nomPartie);
@@ -201,8 +205,12 @@ public class DatabaseTools {
     };
     
     public Integer createSauvegarde(Integer id_partie , String nomSauvegarde) throws SQLException{
+        
+        // --- CORRECTION 2 ---
+        // La colonne dans 'sauvegarde' qui référence 'partie' est 'id_partie_sauvegarde'
         String insert = "INSERT INTO sauvegarde (id_partie, nom_sauvegarde, date_sauvegarde)"
                 + " VALUES (?,?,?)";
+                
         try(PreparedStatement stmt = connection.prepareStatement(insert, Statement.RETURN_GENERATED_KEYS)){
             stmt.setInt(1, id_partie);
             stmt.setString(2, nomSauvegarde);
@@ -234,13 +242,16 @@ public class DatabaseTools {
              PreparedStatement pstLinkPersonnage = connection.prepareStatement(linkPersonnageQuery);
              PreparedStatement pstLinkMonstre = connection.prepareStatement(linkMonstreQuery);
              PreparedStatement pstLinkObjet = connection.prepareStatement(linkObjetQuery)) {
+            
+            // On a besoin de l'id_world, qui est lié à la partie
+            Integer idWorld = 1;
+            
+
 
             // Parcourir tous les éléments du monde
             for (ElementDeJeu element : monde.getListElements()) {
 
                 // --- 1. CRÉER LE PARENT (element_de_jeu) ---
-
-                // Déterminer le type de l'élément pour la colonne 'type_element'
                 String elementType = null;
                 if (element instanceof Personnage) {
                     elementType = "PERSONNAGE";
@@ -251,7 +262,7 @@ public class DatabaseTools {
                 }
 
                 // Remplir la requête pour créer le parent
-                pstParent.setInt(1, idPartie); // <= C'est le 'id_world' !
+                pstParent.setInt(1, idWorld); // <= C'est le 'id_world' !
                 pstParent.setString(2, elementType);
                 pstParent.setInt(3, element.getPosition().getX());
                 pstParent.setInt(4, element.getPosition().getY());
@@ -262,7 +273,6 @@ public class DatabaseTools {
                 Integer newElementId;
                 try (ResultSet generatedKeys = pstParent.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
-                        // La PK est 'id_element' (vu sur ton screenshot)
                         newElementId = generatedKeys.getInt("id_element"); 
                     } else {
                         throw new SQLException("Echec de création de element_de_jeu, pas d'ID obtenu.");
@@ -294,34 +304,137 @@ public class DatabaseTools {
             pstLinkObjet.executeBatch();
         }
     }
-    /**
-     * get world sauvegarde from database
-     * @param idJoueur
-     * @param nomPartie
-     * @param nomSauvegarde
-     * @return monde
-     */
-    public World readWorld(Integer idJoueur, String nomPartie, String nomSauvegarde) {
-        World monde = new World();
-        // TO BE DEFINED
-        
-        // Retreive partie infos for the player
-        // Retreive sauvegarde infos for the partie
+    // DANS DatabaseTools.java
 
-        // Retreive world infos
-        // Generate object world according to the infos
-        
-        // Retreive element de jeu from sauvegarde
-        // Generate approprite objects
-        // Link objects to the world
-        
-        // Associate player with the player's creature
+/**
+ * get world sauvegarde from database
+ * @param idJoueur
+ * @param nomPartie
+ * @param nomSauvegarde
+ * @return monde
+ */
+// DANS DatabaseTools.java
 
-        // Return created world
-        return monde;
+public World readWorld(Integer idJoueur, String nomPartie, String nomSauvegarde) {
+    
+    String finalSaveName = nomSauvegarde;
+    if (finalSaveName == null) {
+        finalSaveName = "Sauvegarde Rapide";
     }
 
+    World monde = null;
+    Integer idPartie;
+    Integer idSauvegarde;
+    Integer idWorld = null; // On le trouvera
+    Integer idPersonnageJoueur = null; // On le trouvera
 
+    try {
+        // 1. Trouver la partie
+        idPartie = getPartie(idJoueur, nomPartie);
+        if (idPartie == null) {
+            System.out.println("readWorld: Partie '" + nomPartie + "' non trouvée.");
+            return null;
+        }
+        
+        // 2. Trouver la sauvegarde
+        String querySave = "SELECT id_sauvegarde FROM sauvegarde WHERE id_partie = ? AND nom_sauvegarde = ?";
+        
+        try (PreparedStatement stmt = connection.prepareStatement(querySave)) {
+            stmt.setInt(1, idPartie);
+            stmt.setString(2, finalSaveName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    idSauvegarde = rs.getInt("id_sauvegarde");
+                } else {
+                    System.out.println("readWorld: Sauvegarde '" + finalSaveName + "' non trouvée.");
+                    return null;
+                }
+            }
+        } // L'erreur de syntaxe de ton log est maintenant corrigée.
+
+        // 3. Lire et recréer tous les Personnages (et trouver celui du joueur)
+        String queryPersos = "SELECT id_personnage, id_joueur FROM sauvegarde_personnage " +
+                             "JOIN personnage USING(id_personnage) " +
+                             "WHERE id_sauvegarde = ?";
+        
+        // On crée un 'monde' temporaire. On ne connaît pas sa taille pour l'instant.
+        // On la trouvera en lisant les éléments.
+        monde = new World(20, 20); // Taille par défaut, on la mettra à jour
+        monde.init(); // Vide les listes
+
+        try (PreparedStatement stmt = connection.prepareStatement(queryPersos)) {
+            stmt.setInt(1, idSauvegarde);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    int id = rs.getInt("id_personnage");
+                    Personnage p = new Personnage(monde); 
+                    p.getFromDatabase(connection, id); // Appel de l'Étape 2
+                    monde.getListElements().add(p);
+                    monde.getPositions().add(p.getPosition());
+                    
+                    // 7. Associer le personnage au joueur
+                    Integer idJoueurDuPerso = (Integer) rs.getObject("id_joueur");
+                    if (idJoueurDuPerso != null && idJoueurDuPerso.equals(idJoueur)) {
+                        monde.getPlayer().setPersonnage(p);
+                        idPersonnageJoueur = id; // On stocke l'ID du perso principal
+                    }
+                }
+            }
+        }
+        
+        // 4. Lire et recréer tous les Monstres
+        String queryMonstres = "SELECT id_monstre FROM sauvegarde_monstre WHERE id_sauvegarde = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(queryMonstres)) {
+            stmt.setInt(1, idSauvegarde);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Monstre m = new Monstre(monde);
+                    m.getFromDatabase(connection, rs.getInt("id_monstre"));
+                    monde.getListElements().add(m);
+                    monde.getPositions().add(m.getPosition());
+                }
+            }
+        }
+        
+        // 5. Lire et recréer tous les Objets
+        String queryObjets = "SELECT id_objet FROM sauvegarde_objet WHERE id_sauvegarde = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(queryObjets)) {
+            stmt.setInt(1, idSauvegarde);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Objet o = new Objet(monde);
+                    o.getFromDatabase(connection, rs.getInt("id_objet"));
+                    monde.getListElements().add(o);
+                    monde.getPositions().add(o.getPosition());
+                }
+            }
+        }
+        
+        // 6. Trouver la taille du monde (id_world)
+        // On prend le premier élément qu'on a chargé pour trouver son id_world
+        if (!monde.getListElements().isEmpty()) {
+            ElementDeJeu unElement = monde.getListElements().get(0);
+            String queryWorld = "SELECT id_world, width, height FROM element_de_jeu " +
+                                "JOIN world USING(id_world) " +
+                                "WHERE id_element = ?";
+            try (PreparedStatement stmt = connection.prepareStatement(queryWorld)) {
+                stmt.setInt(1, unElement.getIdElement());
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        monde.setWidth(rs.getInt("width"));
+                        monde.setHeight(rs.getInt("height"));
+                    }
+                }
+            }
+        }
+
+    } catch (SQLException ex) {
+        Logger.getLogger(DatabaseTools.class.getName()).log(Level.SEVERE, "Erreur lors de readWorld", ex);
+        return null; // En cas d'erreur, retourne null
+    }
+
+    return monde;
+}
     /**
      * remove world sauvegarde from database
      * @param idJoueur

@@ -177,10 +177,43 @@ public class Monstre extends Creature {
             stmt.executeUpdate();
         }
     }
-    @Override
-    public void getFromDatabase(Connection connection, Integer id) {
-    }
 
+
+// Dans Monstre.java
+// (Assure-toi d'avoir les imports java.sql.ResultSet et java.sql.SQLException)
+
+@Override
+public void getFromDatabase(Connection connection, Integer id) {
+    String query = "SELECT * FROM monstre m " +
+                   "JOIN element_de_jeu e ON m.id_monstre = e.id_element " +
+                   "WHERE m.id_monstre = ?";
+
+    try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        stmt.setInt(1, id);
+        
+        try (ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                // Champs du Prérequis
+                this.setIdElement(id);
+
+                // Champs de Monstre
+                this.setRace(rs.getString("race"));
+                this.setPVie(rs.getFloat("p_vie"));
+                this.setPVieMax(rs.getFloat("p_vie_max"));
+                this.setPourcentAttaque(rs.getFloat("pourcent_attaque"));
+                this.setDegatsAttaque(rs.getFloat("degats_attaque"));
+                this.setPourcentEsquive(rs.getFloat("pourcent_esquive"));
+                this.setAbsorbe(rs.getFloat("absorbe"));
+                
+                // Champs de ElementDeJeu (le parent)
+                Point2D pos = new Point2D(rs.getInt("position_x"), rs.getInt("position_y"), this);
+                this.setPosition(pos);
+            }
+        }
+    } catch (SQLException ex) {
+        Logger.getLogger(Monstre.class.getName()).log(Level.SEVERE, null, ex);
+    }
+}
     @Override
     public void removeFromDatabase(Connection connection, Integer id) {
     }

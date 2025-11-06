@@ -480,10 +480,51 @@ private String race;
             stmt.executeUpdate();
         }
     }
-    @Override
-    public void getFromDatabase(Connection connection, Integer id) {
-    }
 
+// Dans Personnage.java
+// (Assure-toi d'avoir les imports java.sql.ResultSet et java.sql.SQLException)
+
+@Override
+public void getFromDatabase(Connection connection, Integer id) {
+    // Cette requête joint le parent (element_de_jeu) et l'enfant (personnage)
+    String query = "SELECT * FROM personnage p " +
+                   "JOIN element_de_jeu e ON p.id_personnage = e.id_element " +
+                   "WHERE p.id_personnage = ?";
+
+    try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        stmt.setInt(1, id);
+        
+        try (ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                // Champs du Prérequis
+                this.setIdElement(id);
+
+                // Champs de Personnage
+                this.setRace(rs.getString("race"));
+                this.setMetier(rs.getString("metier"));
+                this.setPVie(rs.getFloat("p_vie"));
+                this.setPVieMax(rs.getFloat("p_vie_max"));
+                this.setPMagie(rs.getFloat("p_magie"));
+                this.setPMagieMax(rs.getFloat("p_magie_max"));
+                this.setPortee(rs.getFloat("portee"));
+                this.setPourcentAttaque(rs.getFloat("pourcent_attaque"));
+                this.setDegatsAttaque(rs.getFloat("degats_attaque"));
+                this.setPourcentParade(rs.getFloat("pourcent_parade"));
+                this.setValeurParade(rs.getFloat("valeur_parade"));
+                this.setPourcentEsquive(rs.getFloat("pourcent_esquive"));
+                this.setAbsorbe(rs.getFloat("absorbe"));
+                this.setNbFleches(rs.getInt("nb_fleches"));
+                
+                // Champs de ElementDeJeu (le parent)
+                // On utilise les positions du parent
+                Point2D pos = new Point2D(rs.getInt("position_x"), rs.getInt("position_y"), this);
+                this.setPosition(pos);
+            }
+        }
+    } catch (SQLException ex) {
+        Logger.getLogger(Personnage.class.getName()).log(Level.SEVERE, null, ex);
+    }
+}
     @Override
     public void removeFromDatabase(Connection connection, Integer id) {
     }

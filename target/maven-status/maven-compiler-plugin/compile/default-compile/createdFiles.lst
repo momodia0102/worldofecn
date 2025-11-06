@@ -2,6 +2,7 @@ fr\centrale\nantes\worldofecn\world\Joueur.class
 fr\centrale\nantes\worldofecn\world\Point2D.class
 fr\centrale\nantes\worldofecn\DatabaseTools.class
 fr\centrale\nantes\worldofecn\world\Creature.class
+fr\centrale\nantes\worldofecn\world\NewClass.class
 fr\centrale\nantes\worldofecn\WorldOfECN.class
 fr\centrale\nantes\worldofecn\world\ElementDeJeu.class
 fr\centrale\nantes\worldofecn\world\World.class

@@ -129,10 +129,37 @@ public class Objet extends ElementDeJeu {
             stmt.executeUpdate();
         }
     }
-    @Override
-    public void getFromDatabase(Connection connection, Integer id) {
-    }
 
+
+// Dans Objet.java
+// (Assure-toi d'avoir les imports java.sql.ResultSet et java.sql.SQLException)
+
+@Override
+public void getFromDatabase(Connection connection, Integer id) {
+    String query = "SELECT * FROM objet o " +
+                   "JOIN element_de_jeu e ON o.id_objet = e.id_element " +
+                   "WHERE o.id_objet = ?";
+
+    try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        stmt.setInt(1, id);
+        
+        try (ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                // Champs du Prérequis
+                this.setIdElement(id);
+
+                // Champs de Objet
+                this.setType(rs.getString("type"));
+                
+                // Champs de ElementDeJeu (le parent)
+                Point2D pos = new Point2D(rs.getInt("position_x"), rs.getInt("position_y"), this);
+                this.setPosition(pos);
+            }
+        }
+    } catch (SQLException ex) {
+        Logger.getLogger(Objet.class.getName()).log(Level.SEVERE, null, ex);
+    }
+}
     @Override
     public void removeFromDatabase(Connection connection, Integer id) {
     }

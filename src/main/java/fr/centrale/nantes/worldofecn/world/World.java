@@ -58,7 +58,7 @@ public class World {
     /**
      * Initialize elements
      */
-    private void init() {
+    public void init() {
         this.listElements = new LinkedList<ElementDeJeu>();
         this.player = new Joueur("Player");
         this.positions = new ArrayList<Point2D>();
@@ -220,6 +220,11 @@ public class World {
     public void setPlayer(String name) {
         this.player.setNom(name);
     }
+
+    public Joueur getPlayer() {
+        return player;
+    }
+    
     
     /**
      * Return used positions
